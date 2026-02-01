@@ -1,7 +1,10 @@
-const express = require("express");
-const app = express();
+import express from "express";
+import sharp from "sharp";
 
+const app = express();
 app.use(express.json({ limit: "1mb" }));
+
+const PORT = process.env.PORT || 3000;
 
 // ================= HEALTHCHECK (ESSENCIAL PRO EASYPANEL) =================
 app.get("/", (req, res) => res.status(200).send("ok"));
@@ -9,10 +12,12 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 
 // ================= UTIL =================
 function escapeXml(unsafe = "") {
-  return unsafe
+  return String(unsafe)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 }
 
 function wrapText(text, maxChars = 28) {
@@ -32,7 +37,7 @@ function wrapText(text, maxChars = 28) {
   return lines.slice(0, 8);
 }
 
-// ================= SVG CARD =================
+// ================= SVG CARD (SEM foreignObject) =================
 function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
   const width = 1080, height = 1080;
   const lines = wrapText(frase, 28);
@@ -41,9 +46,9 @@ function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
   const blockHeight = lines.length * lineHeight;
   const startY = Math.round((height / 2) - (blockHeight / 2));
 
-  const tspans = lines.map((ln, i) =>
-    `<tspan x="540" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(ln)}</tspan>`
-  ).join("");
+  const tspans = lines
+    .map((ln, i) => `<tspan x="540" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(ln)}</tspan>`)
+    .join("");
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
@@ -58,41 +63,51 @@ function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
     ${tspans}
   </text>
 
-  ${autor ? `
+  ${
+    autor
+      ? `
   <text x="540" y="980"
     text-anchor="middle"
     fill="${fg}"
     opacity="0.85"
     font-family="DejaVu Sans, Arial, sans-serif"
     font-size="34"
-    font-weight="500">— ${escapeXml(autor)}</text>` : ""}
+    font-weight="500">— ${escapeXml(autor)}</text>`
+      : ""
+  }
 </svg>`;
 }
 
 // ================= ENDPOINT PRINCIPAL =================
-app.post("/card", (req, res) => {
+app.post("/card", async (req, res) => {
   try {
     const { frase, autor, bg, fg } = req.body || {};
 
-    if (!frase) {
-      return res.status(400).json({ error: "frase é obrigatória" });
+    if (!frase || typeof frase !== "string" || frase.trim().length < 2) {
+      return res.status(400).json({ error: "Campo 'frase' é obrigatório." });
     }
 
-    const svg = svgCard({ frase, autor, bg, fg });
+    const svg = svgCard({
+      frase: frase.trim(),
+      autor: typeof autor === "string" ? autor.trim() : "",
+      bg: typeof bg === "string" ? bg : "#0B0B0F",
+      fg: typeof fg === "string" ? fg : "#FFFFFF",
+    });
 
-    res.setHeader("Content-Type", "image/svg+xml");
-    res.setHeader("Content-Disposition", 'inline; filename="card.svg"');
+    const png = await sharp(Buffer.from(svg))
+      .png({ quality: 95 })
+      .toBuffer();
+
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Content-Disposition", 'inline; filename="card.png"');
     res.setHeader("Cache-Control", "no-store");
-
-    res.send(svg);
+    return res.status(200).send(png);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "erro ao gerar card" });
+    return res.status(500).json({ error: "Falha ao gerar imagem." });
   }
 });
 
-// ================= START =================
-const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`quote-card-service listening on :${PORT}`);
 });
