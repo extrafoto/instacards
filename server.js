@@ -94,8 +94,10 @@ app.post("/card", async (req, res) => {
       .png({ quality: 95 })
       .toBuffer();
 
-    res.setHeader("Content-Type", "image/png");
-    res.setHeader("Cache-Control", "no-store");
+res.setHeader("Content-Type", "image/png");
+res.setHeader("Content-Disposition", 'inline; filename="card.png"');
+res.setHeader("Cache-Control", "no-store");
+
     return res.status(200).send(png);
   } catch (err) {
     console.error(err);
