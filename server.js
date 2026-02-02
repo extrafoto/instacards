@@ -135,6 +135,29 @@ app.post("/card", async (req, res) => {
     return res.status(500).json({ error: "Falha ao gerar imagem" });
   }
 });
+app.get("/card.png", async (req, res) => {
+  try {
+    const frase = (req.query.frase || "").toString().trim();
+    const autor = (req.query.autor || "").toString().trim();
+    const bg = (req.query.bg || "#0B0B0F").toString();
+    const fg = (req.query.fg || "#FFFFFF").toString();
+
+    if (!frase) return res.status(400).json({ error: "frase é obrigatória" });
+
+    const svg = svgCard({ frase, autor, bg, fg });
+    const png = await sharp(Buffer.from(svg)).png({ quality: 95 }).toBuffer();
+
+    res.status(200);
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Content-Disposition", 'inline; filename="card.png"');
+    res.setHeader("Cache-Control", "public, max-age=60");
+    res.setHeader("Content-Length", String(png.length));
+    return res.end(png);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Falha ao gerar imagem" });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`quote-card-service listening on :${PORT}`);
