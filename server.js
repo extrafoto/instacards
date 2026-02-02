@@ -57,9 +57,10 @@ function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
   const textAreaHeight = height - padTop - padBottom;
 
   // ✅ FONTE MAIS CONTROLADA
-  const fontSizeStart = 64;  // antes estava 72 (muito grande)
-  const minFontSize = 32;    // até onde pode diminuir
-  const maxLines = 8;        // evita “paredão”
+const fontSizeStart = 56;   // começa menor
+const charWidthFactor = 0.68; // “engorda” o caractere: reduz maxChars e força quebra
+const maxLines = 7;         // menos linhas = fonte menor mais cedo
+
 
   // aproximação de largura média do caractere
   const charWidthFactor = 0.62;
@@ -96,7 +97,7 @@ function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
     fill="${fg}"
     font-family="DejaVu Sans, Arial, sans-serif"
     font-size="${fontSize}"
-    font-weight="700">
+    font-weight="600">
     ${tspans}
   </text>
 
