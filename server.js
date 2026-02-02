@@ -39,14 +39,14 @@ function wrapText(text, maxChars = 28) {
 
 // ================= SVG CARD (SEM foreignObject) =================
 function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
-  const width = 1080, height = 1350;
+  const width = 1080, height = 1080;
 
   // ================= TAMANHO DINÂMICO DA FONTE =================
   const len = frase.length;
 
   let fontSize;
   if (len < 90) fontSize = 72;
-  else if (len < 140) fontSize = 60;
+  else if (len < 140) fontSize = 40;
   else if (len < 200) fontSize = 52;
   else if (len < 260) fontSize = 46;
   else fontSize = 40;
@@ -54,43 +54,80 @@ function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
   const lineHeight = Math.round(fontSize * 1.25);
 
   // ================= QUEBRA DE LINHA INTELIGENTE =================
-  function wrapByWidth(text, maxCharsPerLine) {
-    const words = text.split(" ");
-    const lines = [];
-    let line = "";
+function wrapByMaxChars(text, maxChars) {
+  const words = (text || "").split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
 
-    for (const w of words) {
-      const test = line ? line + " " + w : w;
-      if (test.length <= maxCharsPerLine) {
-        line = test;
-      } else {
-        lines.push(line);
-        line = w;
-      }
+  // quebra palavras muito longas (evita "estouro" lateral)
+  const safeWords = [];
+  for (const w of words) {
+    if (w.length > maxChars) {
+      // fatia palavra grande
+      for (let i = 0; i < w.length; i += maxChars) safeWords.push(w.slice(i, i + maxChars));
+    } else {
+      safeWords.push(w);
     }
-    if (line) lines.push(line);
-    return lines.slice(0, 10);
   }
 
-  // quanto menor a fonte, mais cabe por linha
-  const maxChars = Math.floor(42 - (fontSize * 0.15));
-  const lines = wrapByWidth(frase, maxChars);
+  for (const w of safeWords) {
+    const test = line ? `${line} ${w}` : w;
+    if (test.length <= maxChars) line = test;
+    else {
+      if (line) lines.push(line);
+      line = w;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
 
+function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
+  const width = 1080, height = 1080;
+
+  // ✅ margem real (aqui está o “conserto do apertado”)
+  const padX = 140;                 // margem lateral
+  const padTop = 140;               // margem superior do bloco
+  const padBottom = 180;            // espaço pro autor
+  const textAreaWidth = width - (padX * 2);
+  const textAreaHeight = height - padTop - padBottom;
+
+  // ===== fonte dinâmica por “tentativa e ajuste” =====
+  // Começa grande e vai reduzindo até caber
+  let fontSize = 72;                // começamos maior, mas vai diminuir se precisar
+  let lines = [];
+  let lineHeight = 0;
+
+  // aproximação: largura média de caractere ≈ 0.56 do fontSize
+  const charWidthFactor = 0.56;
+
+  for (; fontSize >= 36; fontSize -= 2) {
+    const maxChars = Math.max(18, Math.floor(textAreaWidth / (fontSize * charWidthFactor)));
+    lines = wrapByMaxChars(frase, maxChars);
+
+    // limita linhas pra não virar “paredão”
+    const maxLines = 9;
+    if (lines.length > maxLines) continue;
+
+    lineHeight = Math.round(fontSize * 1.28);
+    const blockHeight = lines.length * lineHeight;
+
+    if (blockHeight <= textAreaHeight) break; // ✅ cabeu
+  }
+
+  // Centraliza verticalmente dentro da área útil
   const blockHeight = lines.length * lineHeight;
-  const startY = Math.round((height / 2) - (blockHeight / 2));
+  const startY = Math.round(padTop + (textAreaHeight / 2) - (blockHeight / 2));
 
   const tspans = lines
-    .map((ln, i) =>
-      `<tspan x="540" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(ln)}</tspan>`
-    )
+    .map((ln, i) => `<tspan x="${width / 2}" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(ln)}</tspan>`)
     .join("");
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
   <rect width="100%" height="100%" fill="${bg}"/>
 
-  <!-- margem lateral real -->
-  <text x="540" y="${startY}"
+  <text x="${width / 2}" y="${startY}"
     text-anchor="middle"
     fill="${fg}"
     font-family="DejaVu Sans, Arial, sans-serif"
@@ -102,17 +139,18 @@ function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
   ${
     autor
       ? `
-  <text x="540" y="${height - 120}"
+  <text x="${width / 2}" y="${height - 90}"
     text-anchor="middle"
     fill="${fg}"
     opacity="0.85"
     font-family="DejaVu Sans, Arial, sans-serif"
-    font-size="36"
+    font-size="34"
     font-weight="500">— ${escapeXml(autor)}</text>`
       : ""
   }
 </svg>`;
 }
+
 
 
 // ================= ENDPOINT PRINCIPAL =================
