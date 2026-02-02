@@ -95,6 +95,11 @@ function sendPng(res, pngBuffer) {
   res.setHeader("Content-Length", String(pngBuffer.length));
   res.end(pngBuffer);
 }
+app.head("/card.png", (req, res) => {
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Cache-Control", "public, max-age=60");
+  res.status(200).end();
+});
 
 // ================= GET (O QUE O INSTAGRAM PRECISA) =================
 // Use assim:
