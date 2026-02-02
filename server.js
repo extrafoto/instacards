@@ -6,7 +6,7 @@ app.use(express.json({ limit: "1mb" }));
 
 const PORT = process.env.PORT || 3000;
 
-// ================= HEALTHCHECK (ESSENCIAL PRO EASYPANEL) =================
+// ================= HEALTHCHECK =================
 app.get("/", (req, res) => res.status(200).send("ok"));
 app.get("/health", (req, res) => res.json({ ok: true }));
 
@@ -21,17 +21,19 @@ function escapeXml(unsafe = "") {
 }
 
 /**
- * Quebra o texto em linhas com base no número máximo de caracteres.
+ * Quebra o texto garantindo que não ultrapasse a largura do card.
+ * Para 1080px, com fonte 44px, ~35-38 caracteres é o limite seguro com margem.
  */
-function wrapText(text, maxChars = 40) {
+function wrapText(text, maxChars = 36) {
   const words = (text || "").split(/\s+/).filter(Boolean);
   const lines = [];
   let line = "";
 
   for (const w of words) {
     const test = line ? `${line} ${w}` : w;
-    if (test.length <= maxChars) line = test;
-    else {
+    if (test.length <= maxChars) {
+      line = test;
+    } else {
       if (line) lines.push(line);
       line = w;
     }
@@ -40,20 +42,21 @@ function wrapText(text, maxChars = 40) {
   return lines;
 }
 
-// ================= SVG CARD (SEM foreignObject) =================
+// ================= SVG CARD =================
 function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
   const width = 1080, height = 1080;
   
-  // Tamanho da fonte principal reduzido para ser mais elegante
-  const fontSize = 48;
-  const lines = wrapText(frase, 40);
+  // Ajuste de tipografia para ser mais "suave"
+  // Reduzimos o peso (weight) e o tamanho
+  const fontSize = 44; 
+  const fontWeight = 400; // Normal em vez de Bold para ser menos agressivo
+  const lines = wrapText(frase, 36);
 
-  // Espaçamento entre linhas (1.5x o tamanho da fonte)
-  const lineHeight = Math.round(fontSize * 1.5);
+  // Line height generoso para leitura fluida
+  const lineHeight = Math.round(fontSize * 1.6);
   const blockHeight = lines.length * lineHeight;
   
-  // Ajuste fino da posição inicial para centralizar melhor o bloco todo
-  // O y do <text> é a linha de base da primeira linha, então compensamos um pouco
+  // Centralização vertical considerando o bloco inteiro
   const startY = Math.round((height / 2) - (blockHeight / 2) + (fontSize / 2));
 
   const tspans = lines
@@ -64,27 +67,27 @@ function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
   <rect width="100%" height="100%" fill="${bg}"/>
 
-  <!-- Texto Principal: Menos agressivo, fonte menor e espaçada -->
+  <!-- Texto Principal com margem lateral implícita via wrapText -->
   <text x="540" y="${startY}"
     text-anchor="middle"
     fill="${fg}"
     font-family="DejaVu Sans, Arial, sans-serif"
     font-size="${fontSize}"
-    font-weight="500"
-    letter-spacing="-0.5">
+    font-weight="${fontWeight}"
+    letter-spacing="-0.2">
     ${tspans}
   </text>
 
   ${
     autor
       ? `
-  <!-- Autor: Posicionado na parte inferior com opacidade suave -->
+  <!-- Autor mais discreto e elegante -->
   <text x="540" y="960"
     text-anchor="middle"
     fill="${fg}"
-    opacity="0.6"
+    opacity="0.5"
     font-family="DejaVu Sans, Arial, sans-serif"
-    font-size="26"
+    font-size="24"
     font-weight="400">— ${escapeXml(autor)}</text>`
       : ""
   }
@@ -112,8 +115,6 @@ app.post("/card", async (req, res) => {
       .toBuffer();
 
     res.setHeader("Content-Type", "image/png");
-    res.setHeader("Content-Disposition", 'inline; filename="card.png"');
-    res.setHeader("Cache-Control", "no-store");
     return res.status(200).send(png);
   } catch (err) {
     console.error(err);
@@ -122,5 +123,5 @@ app.post("/card", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`quote-card-service listening on :${PORT}`);
+  console.log(`quote-card-service running on :${PORT}`);
 });
