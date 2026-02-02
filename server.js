@@ -20,54 +20,17 @@ function escapeXml(unsafe = "") {
     .replaceAll("'", "&apos;");
 }
 
-function wrapText(text, maxChars = 28) {
-  const words = (text || "").split(/\s+/).filter(Boolean);
-  const lines = [];
-  let line = "";
-
-  for (const w of words) {
-    const test = line ? `${line} ${w}` : w;
-    if (test.length <= maxChars) line = test;
-    else {
-      if (line) lines.push(line);
-      line = w;
-    }
-  }
-  if (line) lines.push(line);
-  return lines.slice(0, 8);
-}
-
-// ================= SVG CARD (SEM foreignObject) =================
-function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
-  const width = 1080, height = 1080;
-
-  // ================= TAMANHO DINÂMICO DA FONTE =================
-  const len = frase.length;
-
-  let fontSize;
-  if (len < 90) fontSize = 72;
-  else if (len < 140) fontSize = 40;
-  else if (len < 200) fontSize = 52;
-  else if (len < 260) fontSize = 46;
-  else fontSize = 40;
-
-  const lineHeight = Math.round(fontSize * 1.25);
-
-  // ================= QUEBRA DE LINHA INTELIGENTE =================
 function wrapByMaxChars(text, maxChars) {
   const words = (text || "").split(/\s+/).filter(Boolean);
   const lines = [];
   let line = "";
 
-  // quebra palavras muito longas (evita "estouro" lateral)
+  // quebra palavras absurdamente longas
   const safeWords = [];
   for (const w of words) {
     if (w.length > maxChars) {
-      // fatia palavra grande
       for (let i = 0; i < w.length; i += maxChars) safeWords.push(w.slice(i, i + maxChars));
-    } else {
-      safeWords.push(w);
-    }
+    } else safeWords.push(w);
   }
 
   for (const w of safeWords) {
@@ -85,37 +48,38 @@ function wrapByMaxChars(text, maxChars) {
 function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
   const width = 1080, height = 1080;
 
-  // ✅ margem real (aqui está o “conserto do apertado”)
-  const padX = 140;                 // margem lateral
-  const padTop = 140;               // margem superior do bloco
-  const padBottom = 180;            // espaço pro autor
+  // ✅ MAIS RESPIRO (margens)
+  const padX = 180;      // aumente para 200 se quiser ainda mais
+  const padTop = 170;
+  const padBottom = 190;
+
   const textAreaWidth = width - (padX * 2);
   const textAreaHeight = height - padTop - padBottom;
 
-  // ===== fonte dinâmica por “tentativa e ajuste” =====
-  // Começa grande e vai reduzindo até caber
-  let fontSize = 72;                // começamos maior, mas vai diminuir se precisar
+  // ✅ FONTE MAIS CONTROLADA
+  const fontSizeStart = 64;  // antes estava 72 (muito grande)
+  const minFontSize = 32;    // até onde pode diminuir
+  const maxLines = 8;        // evita “paredão”
+
+  // aproximação de largura média do caractere
+  const charWidthFactor = 0.62;
+
+  let fontSize = fontSizeStart;
   let lines = [];
   let lineHeight = 0;
 
-  // aproximação: largura média de caractere ≈ 0.56 do fontSize
-  const charWidthFactor = 0.56;
-
-  for (; fontSize >= 36; fontSize -= 2) {
+  for (; fontSize >= minFontSize; fontSize -= 2) {
     const maxChars = Math.max(18, Math.floor(textAreaWidth / (fontSize * charWidthFactor)));
     lines = wrapByMaxChars(frase, maxChars);
 
-    // limita linhas pra não virar “paredão”
-    const maxLines = 9;
     if (lines.length > maxLines) continue;
 
-    lineHeight = Math.round(fontSize * 1.28);
+    lineHeight = Math.round(fontSize * 1.22);
     const blockHeight = lines.length * lineHeight;
 
     if (blockHeight <= textAreaHeight) break; // ✅ cabeu
   }
 
-  // Centraliza verticalmente dentro da área útil
   const blockHeight = lines.length * lineHeight;
   const startY = Math.round(padTop + (textAreaHeight / 2) - (blockHeight / 2));
 
@@ -139,12 +103,12 @@ function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
   ${
     autor
       ? `
-  <text x="${width / 2}" y="${height - 90}"
+  <text x="${width / 2}" y="${height - 92}"
     text-anchor="middle"
     fill="${fg}"
     opacity="0.85"
     font-family="DejaVu Sans, Arial, sans-serif"
-    font-size="34"
+    font-size="32"
     font-weight="500">— ${escapeXml(autor)}</text>`
       : ""
   }
