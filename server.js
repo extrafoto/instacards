@@ -61,7 +61,7 @@ function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
   // Começa com um tamanho já “editorial” (não gigante)
   // (quanto maior a frase, menor o começo)
   const len = (frase || "").length;
-  let fontSize = Math.max(44, 64 - Math.floor(len / 30) * 4);
+  let fontSize = Math.max(40, 60 - Math.floor(len / 30) * 4);
 
   // aproximação: “largura média” do caractere em fonte bold
   const charWidthFactor = 0.72;
