@@ -1,84 +1,43 @@
-import express from "express";
-import sharp from "sharp";
-
-const app = express();
-app.use(express.json({ limit: "1mb" }));
-
-const PORT = process.env.PORT || 3000;
-
-// ================= HEALTHCHECK (ESSENCIAL PRO EASYPANEL) =================
-app.get("/", (req, res) => res.status(200).send("ok"));
-app.get("/health", (req, res) => res.json({ ok: true }));
-
-// ================= UTIL =================
-function escapeXml(unsafe = "") {
-  return String(unsafe)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&apos;");
-}
-
-function wrapByMaxChars(text, maxChars) {
-  const words = (text || "").split(/\s+/).filter(Boolean);
-  const lines = [];
-  let line = "";
-
-  // quebra palavras absurdamente longas
-  const safeWords = [];
-  for (const w of words) {
-    if (w.length > maxChars) {
-      for (let i = 0; i < w.length; i += maxChars) safeWords.push(w.slice(i, i + maxChars));
-    } else safeWords.push(w);
-  }
-
-  for (const w of safeWords) {
-    const test = line ? `${line} ${w}` : w;
-    if (test.length <= maxChars) line = test;
-    else {
-      if (line) lines.push(line);
-      line = w;
-    }
-  }
-  if (line) lines.push(line);
-  return lines;
-}
-
 function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
   const width = 1080, height = 1080;
 
-  // ✅ MAIS RESPIRO (margens)
-  const padX = 180;      // aumente para 200 se quiser ainda mais
+  // Área útil (margens)
+  const padX = 210;
   const padTop = 170;
   const padBottom = 190;
 
   const textAreaWidth = width - (padX * 2);
   const textAreaHeight = height - padTop - padBottom;
 
-  // ✅ FONTE MAIS CONTROLADA
-const fontSizeStart = 56;   // começa menor
-const charWidthFactor = 0.68; // “engorda” o caractere: reduz maxChars e força quebra
-const maxLines = 7;         // menos linhas = fonte menor mais cedo
+  // Configs
+  const minFontSize = 28;
+  const maxLines = 8;
 
+  // Começa com um tamanho já “editorial” (não gigante)
+  // (quanto maior a frase, menor o começo)
+  const len = (frase || "").length;
+  let fontSize = Math.max(44, 64 - Math.floor(len / 30) * 4);
 
-  // aproximação de largura média do caractere
-  const charWidthFactor = 0.62;
+  // aproximação: “largura média” do caractere em fonte bold
+  const charWidthFactor = 0.72;
 
-  let fontSize = fontSizeStart;
   let lines = [];
   let lineHeight = 0;
 
   for (; fontSize >= minFontSize; fontSize -= 2) {
-    const maxChars = Math.max(18, Math.floor(textAreaWidth / (fontSize * charWidthFactor)));
+    const maxChars = Math.max(16, Math.floor(textAreaWidth / (fontSize * charWidthFactor)));
     lines = wrapByMaxChars(frase, maxChars);
 
+    // se passou de X linhas, reduz fonte
     if (lines.length > maxLines) continue;
+
+    // “se ficou muitas linhas, força fonte menor”
+    if (lines.length >= 7 && fontSize > 40) continue;
 
     lineHeight = Math.round(fontSize * 1.22);
     const blockHeight = lines.length * lineHeight;
 
-    if (blockHeight <= textAreaHeight) break; // ✅ cabeu
+    if (blockHeight <= textAreaHeight) break;
   }
 
   const blockHeight = lines.length * lineHeight;
@@ -109,45 +68,9 @@ const maxLines = 7;         // menos linhas = fonte menor mais cedo
     fill="${fg}"
     opacity="0.85"
     font-family="DejaVu Sans, Arial, sans-serif"
-    font-size="32"
+    font-size="30"
     font-weight="500">— ${escapeXml(autor)}</text>`
       : ""
   }
 </svg>`;
 }
-
-
-
-// ================= ENDPOINT PRINCIPAL =================
-app.post("/card", async (req, res) => {
-  try {
-    const { frase, autor, bg, fg } = req.body || {};
-
-    if (!frase || typeof frase !== "string" || frase.trim().length < 2) {
-      return res.status(400).json({ error: "Campo 'frase' é obrigatório." });
-    }
-
-    const svg = svgCard({
-      frase: frase.trim(),
-      autor: typeof autor === "string" ? autor.trim() : "",
-      bg: typeof bg === "string" ? bg : "#0B0B0F",
-      fg: typeof fg === "string" ? fg : "#FFFFFF",
-    });
-
-    const png = await sharp(Buffer.from(svg))
-      .png({ quality: 95 })
-      .toBuffer();
-
-    res.setHeader("Content-Type", "image/png");
-    res.setHeader("Content-Disposition", 'inline; filename="card.png"');
-    res.setHeader("Cache-Control", "no-store");
-    return res.status(200).send(png);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Falha ao gerar imagem." });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`quote-card-service listening on :${PORT}`);
-});
