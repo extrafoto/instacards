@@ -48,7 +48,7 @@ function svgCard({ frase, autor, bg = "#0A0A0B", fg = "#FFFFFF" }) {
   const width = 1080, height = 1080;
   
   // Tipografia Premium
-  const fontSize = 46; 
+  const fontSize = 40; 
   const fontWeight = 400; 
   
   // Chamada da função com o limite de caracteres para a margem
