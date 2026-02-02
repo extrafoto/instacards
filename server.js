@@ -45,83 +45,77 @@ function wrapText(text, maxChars = 36) {
 // ================= SVG CARD =================
 function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
   const width = 1080, height = 1080;
-  
-  // Ajuste de tipografia para ser mais "suave"
-  // Reduzimos o peso (weight) e o tamanho
-  const fontSize = 44; 
-  const fontWeight = 400; // Normal em vez de Bold para ser menos agressivo
-  const lines = wrapText(frase, 36);
 
-  // Line height generoso para leitura fluida
-  const lineHeight = Math.round(fontSize * 1.6);
+  // Área útil (margens)
+  const padX = 210;
+  const padTop = 170;
+  const padBottom = 190;
+
+  const textAreaWidth = width - (padX * 2);
+  const textAreaHeight = height - padTop - padBottom;
+
+  // Configs
+  const minFontSize = 28;
+  const maxLines = 8;
+
+  // Começa com um tamanho já “editorial” (não gigante)
+  // (quanto maior a frase, menor o começo)
+  const len = (frase || "").length;
+  let fontSize = Math.max(44, 64 - Math.floor(len / 30) * 4);
+
+  // aproximação: “largura média” do caractere em fonte bold
+  const charWidthFactor = 0.72;
+
+  let lines = [];
+  let lineHeight = 0;
+
+  for (; fontSize >= minFontSize; fontSize -= 2) {
+    const maxChars = Math.max(16, Math.floor(textAreaWidth / (fontSize * charWidthFactor)));
+    lines = wrapByMaxChars(frase, maxChars);
+
+    // se passou de X linhas, reduz fonte
+    if (lines.length > maxLines) continue;
+
+    // “se ficou muitas linhas, força fonte menor”
+    if (lines.length >= 7 && fontSize > 40) continue;
+
+    lineHeight = Math.round(fontSize * 1.22);
+    const blockHeight = lines.length * lineHeight;
+
+    if (blockHeight <= textAreaHeight) break;
+  }
+
   const blockHeight = lines.length * lineHeight;
-  
-  // Centralização vertical considerando o bloco inteiro
-  const startY = Math.round((height / 2) - (blockHeight / 2) + (fontSize / 2));
+  const startY = Math.round(padTop + (textAreaHeight / 2) - (blockHeight / 2));
 
   const tspans = lines
-    .map((ln, i) => `<tspan x="540" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(ln)}</tspan>`)
+    .map((ln, i) => `<tspan x="${width / 2}" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(ln)}</tspan>`)
     .join("");
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
   <rect width="100%" height="100%" fill="${bg}"/>
 
-  <!-- Texto Principal com margem lateral implícita via wrapText -->
-  <text x="540" y="${startY}"
+  <text x="${width / 2}" y="${startY}"
     text-anchor="middle"
     fill="${fg}"
     font-family="DejaVu Sans, Arial, sans-serif"
     font-size="${fontSize}"
-    font-weight="${fontWeight}"
-    letter-spacing="-0.2">
+    font-weight="600">
     ${tspans}
   </text>
 
   ${
     autor
       ? `
-  <!-- Autor mais discreto e elegante -->
-  <text x="540" y="960"
+  <text x="${width / 2}" y="${height - 92}"
     text-anchor="middle"
     fill="${fg}"
-    opacity="0.5"
+    opacity="0.85"
     font-family="DejaVu Sans, Arial, sans-serif"
-    font-size="24"
-    font-weight="400">— ${escapeXml(autor)}</text>`
+    font-size="30"
+    font-weight="500">— ${escapeXml(autor)}</text>`
       : ""
   }
 </svg>`;
 }
-
-// ================= ENDPOINT PRINCIPAL =================
-app.post("/card", async (req, res) => {
-  try {
-    const { frase, autor, bg, fg } = req.body || {};
-
-    if (!frase || typeof frase !== "string" || frase.trim().length < 2) {
-      return res.status(400).json({ error: "Campo 'frase' é obrigatório." });
-    }
-
-    const svg = svgCard({
-      frase: frase.trim(),
-      autor: typeof autor === "string" ? autor.trim() : "",
-      bg: typeof bg === "string" ? bg : "#0B0B0F",
-      fg: typeof fg === "string" ? fg : "#FFFFFF",
-    });
-
-    const png = await sharp(Buffer.from(svg))
-      .png({ quality: 95 })
-      .toBuffer();
-
-    res.setHeader("Content-Type", "image/png");
-    return res.status(200).send(png);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Falha ao gerar imagem." });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`quote-card-service running on :${PORT}`);
-});
