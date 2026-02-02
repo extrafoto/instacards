@@ -63,7 +63,7 @@ function svgCard({ frase, autor, bg = "#0A0A0B", fg = "#FFFFFF" }) {
 
   // ===== AUTO-SCALING =====
   // Começa em um tamanho bonito e vai reduzindo até caber.
-  const maxFontSize = 44;
+  const maxFontSize = 40;
   const minFontSize = 26;
 
   // Aproximação: largura média de caractere em fontes serif ~ 0.60–0.70 do fontSize.
