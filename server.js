@@ -20,7 +20,12 @@ function escapeXml(unsafe = "") {
     .replaceAll("'", "&apos;");
 }
 
-function wrapText(text, maxChars = 34) {
+/**
+ * AQUI É ONDE VOCÊ CONTROLA A MARGEM LATERAL:
+ * O parâmetro 'maxChars' define quantos caracteres cabem em uma linha.
+ * Diminuir este número (ex: de 32 para 25) afasta o texto das bordas.
+ */
+function wrapText(text, maxChars = 26) { // Ajustado para 26 para uma margem bem folgada
   const words = (text || "").split(/\s+/).filter(Boolean);
   const lines = [];
   let line = "";
@@ -43,9 +48,11 @@ function svgCard({ frase, autor, bg = "#0A0A0B", fg = "#FFFFFF" }) {
   const width = 1080, height = 1080;
   
   // Tipografia Premium
-  const fontSize = 40; 
+  const fontSize = 46; 
   const fontWeight = 400; 
-  const lines = wrapText(frase, 32);
+  
+  // Chamada da função com o limite de caracteres para a margem
+  const lines = wrapText(frase, 26); 
 
   const lineHeight = Math.round(fontSize * 1.5);
   const blockHeight = lines.length * lineHeight;
@@ -59,10 +66,9 @@ function svgCard({ frase, autor, bg = "#0A0A0B", fg = "#FFFFFF" }) {
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-  <!-- Fundo Sólido Minimalista -->
   <rect width="100%" height="100%" fill="${bg}"/>
 
-  <!-- Aspas Elegantes -->
+  <!-- Aspas -->
   <text x="540" y="${startY - 100}" 
     text-anchor="middle" 
     fill="${fg}" 
@@ -71,7 +77,7 @@ function svgCard({ frase, autor, bg = "#0A0A0B", fg = "#FFFFFF" }) {
     font-size="160" 
     font-style="italic">“</text>
 
-  <!-- Texto Principal: Estilo Editorial -->
+  <!-- Texto Principal -->
   <text x="540" y="${startY}"
     text-anchor="middle"
     fill="${fg}"
@@ -85,10 +91,7 @@ function svgCard({ frase, autor, bg = "#0A0A0B", fg = "#FFFFFF" }) {
   ${
     autor
       ? `
-  <!-- Linha Divisora Minimalista -->
   <rect x="515" y="910" width="50" height="1" fill="${fg}" opacity="0.3" />
-  
-  <!-- Autor: Sofisticado -->
   <text x="540" y="960"
     text-anchor="middle"
     fill="${fg}"
