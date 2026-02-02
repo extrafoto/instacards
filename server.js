@@ -6,7 +6,7 @@ app.use(express.json({ limit: "1mb" }));
 
 const PORT = process.env.PORT || 3000;
 
-// ================= HEALTHCHECK =================
+// ================= HEALTHCHECK (ESSENCIAL PRO EASYPANEL) =================
 app.get("/", (req, res) => res.status(200).send("ok"));
 app.get("/health", (req, res) => res.json({ ok: true }));
 
@@ -20,7 +20,7 @@ function escapeXml(unsafe = "") {
     .replaceAll("'", "&apos;");
 }
 
-function wrapText(text, maxChars) {
+function wrapText(text, maxChars = 28) {
   const words = (text || "").split(/\s+/).filter(Boolean);
   const lines = [];
   let line = "";
@@ -34,157 +34,108 @@ function wrapText(text, maxChars) {
     }
   }
   if (line) lines.push(line);
-  return lines;
+  return lines.slice(0, 8);
 }
 
-// ================= SVG CARD (AUTO-SCALING) =================
-function svgCard({ frase, autor, bg = "#0A0A0B", fg = "#FFFFFF" }) {
+function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
   const width = 1080, height = 1080;
+  const lines = wrapText(frase, 28);
 
-  // ✅ margens / área útil
-  const padX = 170;                 // ↑ aumenta respiro lateral
-  const padTop = 190;
-  const padBottom = autor ? 240 : 170;
-
-  const textAreaWidth = width - padX * 2;
-  const textAreaHeight = height - padTop - padBottom;
-
-  // ✅ auto-scaling
-  const maxFontSize = 54;           // fonte “bonita” p/ textos médios
-  const minFontSize = 26;           // mínimo aceitável
-  const lineHeightFactor = 1.22;
-
-  // Aproximação da largura média do caractere
-  // (quanto maior, mais “engorda” e quebra antes)
-  const charWidthFactor = 0.62;
-
-  // Evita virar “paredão”
-  const maxLines = 10;
-
-  let fontSize = maxFontSize;
-  let lines = [];
-  let lineHeight = 0;
-
-  for (; fontSize >= minFontSize; fontSize -= 1) {
-    const maxChars = Math.max(
-      14,
-      Math.floor(textAreaWidth / (fontSize * charWidthFactor))
-    );
-
-    lines = wrapText(frase, maxChars);
-
-    // se estourar linhas, força reduzir fonte
-    if (lines.length > maxLines) continue;
-
-    lineHeight = Math.round(fontSize * lineHeightFactor);
-    const blockHeight = lines.length * lineHeight;
-
-    if (blockHeight <= textAreaHeight) break; // ✅ coube
-  }
-
-  // último recurso: corta e põe reticências na última linha
-  if (lines.length > maxLines) {
-    lines = lines.slice(0, maxLines);
-    lines[maxLines - 1] = lines[maxLines - 1].replace(/\s+\S+$/, "…");
-  }
-
-  // centralização vertical do bloco
-  const blockHeightFinal = lines.length * lineHeight;
-  const startY = Math.round(
-    padTop + (textAreaHeight / 2) - (blockHeightFinal / 2)
-  );
+  const lineHeight = 78;
+  const blockHeight = lines.length * lineHeight;
+  const startY = Math.round(height / 2 - blockHeight / 2);
 
   const tspans = lines
-    .map((ln, i) => `<tspan x="${width / 2}" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(ln)}</tspan>`)
+    .map(
+      (ln, i) =>
+        `<tspan x="540" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(ln)}</tspan>`
+    )
     .join("");
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
   <rect width="100%" height="100%" fill="${bg}"/>
 
-  <text x="${width / 2}" y="${startY}"
+  <text x="540" y="${startY}"
     text-anchor="middle"
     fill="${fg}"
     font-family="DejaVu Sans, Arial, sans-serif"
-    font-size="${fontSize}"
-    font-weight="800">
+    font-size="64"
+    font-weight="700">
     ${tspans}
   </text>
 
   ${
     autor
       ? `
-  <text x="${width / 2}" y="${height - 110}"
+  <text x="540" y="980"
     text-anchor="middle"
     fill="${fg}"
-    opacity="0.75"
+    opacity="0.85"
     font-family="DejaVu Sans, Arial, sans-serif"
-    font-size="28"
+    font-size="34"
     font-weight="500">— ${escapeXml(autor)}</text>`
       : ""
   }
 </svg>`;
 }
 
-// ================= GERAR PNG =================
 async function renderPng({ frase, autor, bg, fg }) {
   const svg = svgCard({ frase, autor, bg, fg });
-  return sharp(Buffer.from(svg)).png({ quality: 95 }).toBuffer();
+  // "resolveWithObject: true" nos dá info de buffer e size, mas aqui basta buffer
+  const png = await sharp(Buffer.from(svg)).png({ quality: 95 }).toBuffer();
+  return png;
 }
 
-// ================= POST /card (JSON -> PNG) =================
+function sendPng(res, pngBuffer) {
+  res.status(200);
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Content-Disposition", 'inline; filename="card.png"');
+  res.setHeader("Cache-Control", "public, max-age=60"); // ajuda a Meta
+  res.setHeader("Content-Length", String(pngBuffer.length));
+  res.end(pngBuffer);
+}
+
+// ================= GET (O QUE O INSTAGRAM PRECISA) =================
+// Use assim:
+// /card.png?frase=...&autor=...&bg=%230B0B0F&fg=%23FFFFFF
+app.get("/card.png", async (req, res) => {
+  try {
+    const frase = (req.query.frase || "").toString().trim();
+    const autor = (req.query.autor || "").toString().trim();
+    const bg = (req.query.bg || "#0B0B0F").toString();
+    const fg = (req.query.fg || "#FFFFFF").toString();
+
+    if (!frase) return res.status(400).json({ error: "frase é obrigatória" });
+
+    const png = await renderPng({ frase, autor, bg, fg });
+    return sendPng(res, png);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Falha ao gerar imagem" });
+  }
+});
+
+// ================= POST (SEU USO NO N8N, CONTINUA FUNCIONANDO) =================
 app.post("/card", async (req, res) => {
   try {
     const { frase, autor, bg, fg } = req.body || {};
-    const fraseOk = typeof frase === "string" ? frase.trim() : "";
-    const autorOk = typeof autor === "string" ? autor.trim() : "";
-
-    if (fraseOk.length < 2) {
-      return res.status(400).json({ error: "Campo 'frase' é obrigatório." });
-    }
+    if (!frase) return res.status(400).json({ error: "frase é obrigatória" });
 
     const png = await renderPng({
-      frase: fraseOk,
-      autor: autorOk,
-      bg: typeof bg === "string" ? bg : "#0A0A0B",
+      frase: String(frase).trim(),
+      autor: typeof autor === "string" ? autor.trim() : "",
+      bg: typeof bg === "string" ? bg : "#0B0B0F",
       fg: typeof fg === "string" ? fg : "#FFFFFF",
     });
 
-    res.setHeader("Content-Type", "image/png");
-    res.setHeader("Content-Disposition", 'inline; filename="card.png"');
-    res.setHeader("Cache-Control", "no-store");
-    return res.status(200).send(png);
+    return sendPng(res, png);
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: "Falha ao gerar imagem (POST)." });
+    return res.status(500).json({ error: "Falha ao gerar imagem" });
   }
 });
 
-// ================= GET /card?frase=...&autor=... =================
-app.get("/card", async (req, res) => {
-  try {
-    const frase = typeof req.query.frase === "string" ? req.query.frase.trim() : "";
-    const autor = typeof req.query.autor === "string" ? req.query.autor.trim() : "";
-    const bg = typeof req.query.bg === "string" ? req.query.bg : "#0A0A0B";
-    const fg = typeof req.query.fg === "string" ? req.query.fg : "#FFFFFF";
-
-    if (frase.length < 2) {
-      return res.status(400).json({ error: "Query param 'frase' é obrigatório." });
-    }
-
-    const png = await renderPng({ frase, autor, bg, fg });
-
-    res.setHeader("Content-Type", "image/png");
-    res.setHeader("Content-Disposition", 'inline; filename="card.png"');
-    res.setHeader("Cache-Control", "no-store");
-    return res.status(200).send(png);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Falha ao gerar imagem (GET)." });
-  }
-});
-
-// ✅ listen por último
 app.listen(PORT, () => {
-  console.log(`instacards running on :${PORT}`);
+  console.log(`quote-card-service listening on :${PORT}`);
 });
