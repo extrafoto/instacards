@@ -181,3 +181,37 @@ app.post("/card", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`premium-card-service running on :${PORT}`);
 });
+// ================= GET (URL pública pra Instagram) =================
+// Exemplo:
+// /card?frase=Tenho%20em%20mim...&autor=Fernando%20Pessoa&bg=%230B0B0F&fg=%23FFFFFF
+app.get("/card", async (req, res) => {
+  try {
+    const frase = typeof req.query.frase === "string" ? req.query.frase : "";
+    const autor = typeof req.query.autor === "string" ? req.query.autor : "";
+    const bg = typeof req.query.bg === "string" ? req.query.bg : "#0B0B0F";
+    const fg = typeof req.query.fg === "string" ? req.query.fg : "#FFFFFF";
+
+    if (!frase || frase.trim().length < 2) {
+      return res.status(400).json({ error: "Query 'frase' é obrigatória." });
+    }
+
+    const svg = svgCard({
+      frase: frase.trim(),
+      autor: autor.trim(),
+      bg,
+      fg,
+    });
+
+    const png = await sharp(Buffer.from(svg))
+      .png({ quality: 95 })
+      .toBuffer();
+
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).send(png);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Falha ao gerar imagem (GET)." });
+  }
+});
+
