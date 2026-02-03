@@ -37,7 +37,7 @@ function wrapText(text, maxChars = 28) {
   return lines.slice(0, 8);
 }
 
-function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
+function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#ffff00" }) {
   const width = 1080, height = 1080;
   const lines = wrapText(frase, 28);
 
