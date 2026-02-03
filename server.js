@@ -37,25 +37,22 @@ function wrapText(text, maxChars = 28) {
   return lines.slice(0, 8);
 }
 
-function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
-  const width = 1080, height = 1080;
-  const lines = wrapText(frase, 28);
-
-  const lineHeight = 78;
-  const blockHeight = lines.length * lineHeight;
-  const startY = Math.round(height / 2 - blockHeight / 2);
-
-  const tspans = lines
-    .map(
-      (ln, i) =>
-        `<tspan x="540" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(ln)}</tspan>`
-    )
-    .join("");
+  const frame = 70;          // borda branca
+  const bottomExtra = 140;   // “barriga” polaroid
+  const photoX = frame;
+  const photoY = frame;
+  const photoW = width - frame * 2;
+  const photoH = height - frame * 2 - bottomExtra;
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-  <rect width="100%" height="100%" fill="${bg}"/>
+  <!-- moldura branca -->
+  <rect width="100%" height="100%" fill="#F5F5F5"/>
 
+  <!-- área da “foto” (preta por dentro) -->
+  <rect x="${photoX}" y="${photoY}" width="${photoW}" height="${photoH}" rx="18" fill="${bg}"/>
+
+  <!-- texto centralizado dentro da “foto” -->
   <text x="540" y="${startY}"
     text-anchor="middle"
     fill="${fg}"
@@ -65,20 +62,16 @@ function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#FFFFFF" }) {
     ${tspans}
   </text>
 
-  ${
-    autor
-      ? `
-  <text x="540" y="980"
+  ${autor ? `
+  <text x="540" y="${photoY + photoH + 95}"
     text-anchor="middle"
-    fill="${fg}"
-    opacity="0.85"
+    fill="#111"
+    opacity="0.9"
     font-family="DejaVu Sans, Arial, sans-serif"
     font-size="34"
-    font-weight="500">— ${escapeXml(autor)}</text>`
-      : ""
-  }
+    font-weight="600">— ${escapeXml(autor)}</text>` : ""}
 </svg>`;
-}
+
 
 async function renderPng({ frase, autor, bg, fg }) {
   const svg = svgCard({ frase, autor, bg, fg });
