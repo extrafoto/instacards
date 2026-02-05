@@ -73,7 +73,7 @@ function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#ffff00" }) {
     fill="${fg}"
     opacity="0.85"
     font-family="DejaVu Sans, Arial, sans-serif"
-    font-size="34"
+    font-size="20"
     font-weight="500">— ${escapeXml(autor)}</text>`
       : ""
   }
