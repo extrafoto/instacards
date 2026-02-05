@@ -60,7 +60,7 @@ function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#ffff00" }) {
     text-anchor="middle"
     fill="${fg}"
     font-family="DejaVu Sans, Arial, sans-serif"
-    font-size="64"
+    font-size="45"
     font-weight="700">
     ${tspans}
   </text>
