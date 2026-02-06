@@ -105,7 +105,7 @@ function computeTypography(frase) {
 
 function svgCard({ frase, autor, bg, fg, accent }) {
   const width = 1080;
-  const height = 1080;
+  const height = 1920;
 
   // ÁREA SEGURA
   const safePaddingX = 180;
