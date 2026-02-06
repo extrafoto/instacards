@@ -167,83 +167,99 @@ function computeTypography(frase) {
   return { maxChars, fontSize, lineHeight };
 }
 
-async function svgCard({ frase, autor, bg1, bg2, fg, accent }) {
+function wrapText(text, maxChars) {
+  const words = (text || "").split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+
+  for (const w of words) {
+    const test = line ? `${line} ${w}` : w;
+    if (test.length <= maxChars) line = test;
+    else {
+      if (line) lines.push(line);
+      line = w;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function svgCard({ frase, autor, bg, fg, accent }) {
   const width = 1080;
   const height = 1080;
 
-  // tamanho base mais elegante
-  let fontSize = 66;
+  // 🔥 ÁREA SEGURA (o segredo do design bonito)
+  const safePaddingX = 180;
+  const safePaddingY = 220;
+  const textWidth = width - safePaddingX * 2;
 
-  // área segura lateral (margem)
-  const safeWidth = 840;
+  // 🔥 Fonte menor + mais elegante
+  const fontSize = 56;
+  const lineHeight = 74;
 
-  // quebra REAL por largura
-  let lines = await wrapTextByWidth(frase, fontSize, safeWidth);
+  // 🔥 menos caracteres por linha = mais respiro
+  const maxChars = 22;
 
-  // se ainda ficou muitas linhas, reduz fonte automaticamente
-  while (lines.length > 7) {
-    fontSize -= 4;
-    lines = await wrapTextByWidth(frase, fontSize, safeWidth);
-  }
+  const lines = wrapText(frase, maxChars);
 
-  const lineHeight = Math.round(fontSize * 1.28);
   const blockHeight = lines.length * lineHeight;
-  const startY = Math.round(height / 2 - blockHeight / 2);
+  const startY = Math.round((height - blockHeight) / 2);
 
-  const tspans = lines
-    .map(
-      (ln, i) =>
-        `<tspan x="540" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(ln)}</tspan>`
-    )
-    .join("");
-
-  const authorSize = Math.round(fontSize * 0.45);
+  const tspans = lines.map((ln, i) =>
+    `<tspan x="540" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(ln)}</tspan>`
+  ).join("");
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="${bg1}"/>
-      <stop offset="100%" stop-color="${bg2}"/>
-    </linearGradient>
+  <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
 
-    <filter id="grain">
-      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3"/>
-      <feColorMatrix type="matrix" values="
-        1 0 0 0 0
-        0 1 0 0 0
-        0 0 1 0 0
-        0 0 0 0.08 0"/>
-    </filter>
-  </defs>
+    <!-- Fundo -->
+    <defs>
+      <radialGradient id="g" cx="50%" cy="40%" r="80%">
+        <stop offset="0%" stop-color="${bg}" stop-opacity="1"/>
+        <stop offset="100%" stop-color="#111" stop-opacity="1"/>
+      </radialGradient>
 
-  <rect width="100%" height="100%" fill="url(#bg)"/>
-  <rect width="100%" height="100%" filter="url(#grain)" opacity="0.55"/>
+      <!-- textura -->
+      <filter id="noise">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+        <feColorMatrix type="saturate" values="0"/>
+        <feComponentTransfer>
+          <feFuncA type="linear" slope="0.03"/>
+        </feComponentTransfer>
+      </filter>
+    </defs>
 
-  <rect x="140" y="120" width="800" height="6" rx="3" fill="${accent}" opacity="0.55"/>
+    <rect width="100%" height="100%" fill="url(#g)"/>
+    <rect width="100%" height="100%" filter="url(#noise)"/>
 
-  <text x="540" y="${startY}"
-    text-anchor="middle"
-    fill="${fg}"
-    font-family="DejaVu Sans, Arial, sans-serif"
-    font-size="${fontSize}"
-    font-weight="700">
-    ${tspans}
-  </text>
+    <!-- linha superior respeitando margem -->
+    <line x1="${safePaddingX}" x2="${width - safePaddingX}"
+          y1="${safePaddingY - 80}" y2="${safePaddingY - 80}"
+          stroke="${accent}" stroke-width="6" stroke-linecap="round" opacity="0.8"/>
 
-  ${
-    autor
-      ? `<text x="540" y="980"
-        text-anchor="middle"
-        fill="${fg}"
-        opacity="0.86"
-        font-family="DejaVu Sans, Arial, sans-serif"
-        font-size="${authorSize}"
-        font-weight="500">— ${escapeXml(autor)}</text>`
-      : ""
-  }
-</svg>`;
+    <!-- texto principal -->
+    <text x="540" y="${startY}"
+      text-anchor="middle"
+      fill="${fg}"
+      font-family="DejaVu Sans, Arial, sans-serif"
+      font-size="${fontSize}"
+      font-weight="700">
+      ${tspans}
+    </text>
+
+    <!-- autor mais distante -->
+    ${autor ? `
+    <text x="540" y="${height - safePaddingY}"
+      text-anchor="middle"
+      fill="${fg}"
+      opacity="0.85"
+      font-family="DejaVu Sans, Arial, sans-serif"
+      font-size="32"
+      font-weight="500">— ${escapeXml(autor)}</text>` : ""}
+
+  </svg>`;
 }
+
 
 
 async function renderPng({ frase, autor, bg1, bg2, fg, accent }) {
