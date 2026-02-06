@@ -1,50 +1,169 @@
-const palettes = [
-  ["#1C6E8C", "#F3DFA8", "#F3C59B", "#FA4711", "#D06E55"],
-  ["#2D89B7", "#F0C8BE", "#F7B96E", "#D87938", "#E6E6E6"],
-  ["#F6EBE4", "#F0BA5C", "#E4A84E", "#D1772E", "#F7C9E6"],
-  ["#3375CC", "#286AAB", "#4791D1", "#CCCCCC", "#E7E7E4"],
-  ["#A6A2C3", "#D2D1E0", "#E0DEEB", "#9FA6CF", "#A8B3D7"],
-  ["#039E96", "#04C8CB", "#FAEA05", "#FDAA37", "#FDE498"],
-];
+import express from "express";
+import sharp from "sharp";
 
-function hexToRgb(hex) {
-  const h = hex.replace("#", "");
-  const bigint = parseInt(h.length === 3 ? h.split("").map(c => c + c).join("") : h, 16);
-  return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+const app = express();
+app.use(express.json({ limit: "1mb" }));
+
+const PORT = process.env.PORT || 3000;
+
+// ================= HEALTHCHECK (ESSENCIAL PRO EASYPANEL) =================
+app.get("/", (req, res) => res.status(200).send("ok"));
+app.get("/health", (req, res) => res.json({ ok: true }));
+
+// ================= UTIL =================
+function escapeXml(unsafe = "") {
+  return String(unsafe)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 }
 
-// luminância relativa (W3C)
-function relLuminance({ r, g, b }) {
-  const srgb = [r, g, b].map(v => {
-    v /= 255;
-    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
-}
+function wrapText(text, maxChars = 28) {
+  const words = (text || "").split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
 
-function contrastRatio(hex1, hex2) {
-  const L1 = relLuminance(hexToRgb(hex1));
-  const L2 = relLuminance(hexToRgb(hex2));
-  const [a, b] = L1 > L2 ? [L1, L2] : [L2, L1];
-  return (a + 0.05) / (b + 0.05);
-}
-
-// escolhe bg + text com contraste bom (>= 4.5 se der)
-function pickColors() {
-  const p = palettes[Math.floor(Math.random() * palettes.length)];
-
-  // tenta achar a melhor combinação bg/text na própria paleta
-  let best = { bg: p[0], fg: p[4], ratio: 0 };
-  for (const bg of p) {
-    for (const fg of p) {
-      if (bg === fg) continue;
-      const ratio = contrastRatio(bg, fg);
-      if (ratio > best.ratio) best = { bg, fg, ratio };
+  for (const w of words) {
+    const test = line ? `${line} ${w}` : w;
+    if (test.length <= maxChars) line = test;
+    else {
+      if (line) lines.push(line);
+      line = w;
     }
   }
-
-  // escolhe um accent diferente (pra detalhe)
-  const accent = p.find(c => c !== best.bg && c !== best.fg) || p[0];
-
-  return { bg: best.bg, fg: best.fg, accent };
+  if (line) lines.push(line);
+  return lines.slice(0, 8);
 }
+
+function svgCard({ frase, autor, bg = "#0B0B0F", fg = "#ffff00" }) {
+  const width = 1080, height = 1080;
+  const lines = wrapText(frase, 28);
+
+  const lineHeight = 78;
+  const blockHeight = lines.length * lineHeight;
+  const startY = Math.round(height / 2 - blockHeight / 2);
+
+  const tspans = lines
+    .map(
+      (ln, i) =>
+        `<tspan x="540" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(ln)}</tspan>`
+    )
+    .join("");
+
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+  <rect width="100%" height="100%" fill="${bg}"/>
+
+  <text x="540" y="${startY}"
+    text-anchor="middle"
+    fill="${fg}"
+    font-family="DejaVu Sans, Arial, sans-serif"
+    font-size="45"
+    font-weight="700">
+    ${tspans}
+  </text>
+
+  ${
+    autor
+      ? `
+  <text x="540" y="980"
+    text-anchor="middle"
+    fill="${fg}"
+    opacity="0.85"
+    font-family="DejaVu Sans, Arial, sans-serif"
+    font-size="20"
+    font-weight="500">— ${escapeXml(autor)}</text>`
+      : ""
+  }
+</svg>`;
+}
+
+async function renderPng({ frase, autor, bg, fg }) {
+  const svg = svgCard({ frase, autor, bg, fg });
+  // "resolveWithObject: true" nos dá info de buffer e size, mas aqui basta buffer
+  const png = await sharp(Buffer.from(svg)).png({ quality: 95 }).toBuffer();
+  return png;
+}
+
+function sendPng(res, pngBuffer) {
+  res.status(200);
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Content-Disposition", 'inline; filename="card.png"');
+  res.setHeader("Cache-Control", "public, max-age=60"); // ajuda a Meta
+  res.setHeader("Content-Length", String(pngBuffer.length));
+  res.end(pngBuffer);
+}
+app.head("/card.png", (req, res) => {
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Cache-Control", "public, max-age=60");
+  res.status(200).end();
+});
+
+// ================= GET (O QUE O INSTAGRAM PRECISA) =================
+// Use assim:
+// /card.png?frase=...&autor=...&bg=%230B0B0F&fg=%23FFFFFF
+app.get("/card.png", async (req, res) => {
+  try {
+    const frase = (req.query.frase || "").toString().trim();
+    const autor = (req.query.autor || "").toString().trim();
+    const bg = (req.query.bg || "#0B0B0F").toString();
+    const fg = (req.query.fg || "#FFFFFF").toString();
+
+    if (!frase) return res.status(400).json({ error: "frase é obrigatória" });
+
+    const png = await renderPng({ frase, autor, bg, fg });
+    return sendPng(res, png);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Falha ao gerar imagem" });
+  }
+});
+
+// ================= POST (SEU USO NO N8N, CONTINUA FUNCIONANDO) =================
+app.post("/card", async (req, res) => {
+  try {
+    const { frase, autor, bg, fg } = req.body || {};
+    if (!frase) return res.status(400).json({ error: "frase é obrigatória" });
+
+    const png = await renderPng({
+      frase: String(frase).trim(),
+      autor: typeof autor === "string" ? autor.trim() : "",
+      bg: typeof bg === "string" ? bg : "#0B0B0F",
+      fg: typeof fg === "string" ? fg : "#FFFFFF",
+    });
+
+    return sendPng(res, png);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Falha ao gerar imagem" });
+  }
+});
+app.get("/card.png", async (req, res) => {
+  try {
+    const frase = (req.query.frase || "").toString().trim();
+    const autor = (req.query.autor || "").toString().trim();
+    const bg = (req.query.bg || "#0B0B0F").toString();
+    const fg = (req.query.fg || "#FFFFFF").toString();
+
+    if (!frase) return res.status(400).json({ error: "frase é obrigatória" });
+
+    const svg = svgCard({ frase, autor, bg, fg });
+    const png = await sharp(Buffer.from(svg)).png({ quality: 95 }).toBuffer();
+
+    res.status(200);
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Content-Disposition", 'inline; filename="card.png"');
+    res.setHeader("Cache-Control", "public, max-age=60");
+    res.setHeader("Content-Length", String(png.length));
+    return res.end(png);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Falha ao gerar imagem" });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`quote-card-service listening on :${PORT}`);
+});
