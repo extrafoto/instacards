@@ -31,13 +31,28 @@ function hashStr(s = "") {
 
 // ===== Paletas sólidas elegantes (bg / fg / accent / accentAlt) =====
 const PALETTES = [
-  { bg1: "#FF6B35", bg2: "#F7B801", fg: "#FFFFFF", accent: "#1B998B" },
-  { bg1: "#E71D36", bg2: "#FB5607", fg: "#FFFFFF", accent: "#FFD166" },
-  { bg1: "#3A86FF", bg2: "#8338EC", fg: "#FFFFFF", accent: "#FFBE0B" },
-  { bg1: "#06D6A0", bg2: "#118AB2", fg: "#FFFFFF", accent: "#EF476F" },
-  { bg1: "#2E294E", bg2: "#1B998B", fg: "#FFFFFF", accent: "#F7B801" },
-];
+  // Tons quentes
+  { bg: "#FAF5EF", fg: "#1A1714", accent: "#C8553D", accentAlt: "#E8D5C4" },
+  { bg: "#F7F0E6", fg: "#2D2926", accent: "#B08968", accentAlt: "#DDD0C0" },
+  { bg: "#FDF2E9", fg: "#2C1810", accent: "#D4763C", accentAlt: "#F5DCC8" },
+  { bg: "#F5EEDC", fg: "#33312E", accent: "#A67C52", accentAlt: "#E0D4BE" },
 
+  // Tons frios
+  { bg: "#EFF2F5", fg: "#1C2127", accent: "#4A6FA5", accentAlt: "#C8D5E2" },
+  { bg: "#EDF1EE", fg: "#1B2721", accent: "#4A7C6F", accentAlt: "#C2D5CE" },
+  { bg: "#F0EDF5", fg: "#21192B", accent: "#7B5EA7", accentAlt: "#D4CCE0" },
+  { bg: "#EBF0F0", fg: "#1A2525", accent: "#3D7A7A", accentAlt: "#BDD4D4" },
+
+  // Neutros sofisticados
+  { bg: "#F4F3F1", fg: "#1D1D1B", accent: "#8C7A6B", accentAlt: "#DDD7D0" },
+  { bg: "#EDECE8", fg: "#1F1E1C", accent: "#6B6356", accentAlt: "#D1CEC7" },
+
+  // Escuros elegantes
+  { bg: "#1A1D23", fg: "#F0EDE8", accent: "#C8A97E", accentAlt: "#2D3039" },
+  { bg: "#191C20", fg: "#E8ECF0", accent: "#6B9AC4", accentAlt: "#252A32" },
+  { bg: "#1C1F1E", fg: "#E6EBE8", accent: "#7BAF8E", accentAlt: "#272D2A" },
+  { bg: "#201B1E", fg: "#F0E8EC", accent: "#C07C8C", accentAlt: "#302830" },
+];
 
 function normalizeHex(hex, fallback) {
   if (!hex) return fallback;
@@ -49,10 +64,10 @@ function normalizeHex(hex, fallback) {
   return v;
 }
 
-function choosePalette() {
-  return PALETTES[Math.floor(Math.random() * PALETTES.length)];
+function choosePalette(frase, autor) {
+  const h = hashStr(`${frase}||${autor}`);
+  return PALETTES[h % PALETTES.length];
 }
-
 
 // ===== Contraste =====
 function hexToRgb(hex) {
