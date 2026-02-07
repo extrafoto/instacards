@@ -30,7 +30,7 @@ function hashStr(s = "") {
 }
 
 // ===== Paletas sólidas elegantes (bg / fg / accent / accentAlt) =====
-const PALETA = [
+const PALETTES = [
   "#FF6B35",
   "#F7B801",
   "#00A6A6",
@@ -56,7 +56,7 @@ function normalizeHex(hex, fallback) {
   return v;
 }
 
-function choosePalette(frase, autor) {
+function choosePALETTES(frase, autor) {
   const h = hashStr(`${frase}||${autor}`);
   return PALETTES[h % PALETTES.length];
 }
