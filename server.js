@@ -30,16 +30,16 @@ function hashStr(s = "") {
   return (h >>> 0);
 }
 
-// paletas (bg1/bg2 = gradiente; fg = texto; accent = detalhe)
+// paletas vintage claras (bg1/bg2 = gradiente; fg = texto; accent = detalhe)
 const PALETTES = [
-  { bg1: "#0B132B", bg2: "#1C2541", fg: "#F7F7FF", accent: "#5BC0BE" }, // navy/teal
-  { bg1: "#111827", bg2: "#0B0F1A", fg: "#F9FAFB", accent: "#F59E0B" }, // graphite/amber
-  { bg1: "#0F172A", bg2: "#1E293B", fg: "#E2E8F0", accent: "#22C55E" }, // slate/green
-  { bg1: "#2B193D", bg2: "#3A1C71", fg: "#FFF7ED", accent: "#FB7185" }, // purple/pink
-  { bg1: "#0B3D2E", bg2: "#073B4C", fg: "#F8FAFC", accent: "#FFD166" }, // deep teal/yellow
-  { bg1: "#2D1B0F", bg2: "#1F2937", fg: "#FFF7ED", accent: "#60A5FA" }, // warm brown/blue
-  { bg1: "#0A0A0A", bg2: "#1F1F1F", fg: "#FFFFFF", accent: "#A3E635" }, // dark/lime
-  { bg1: "#123524", bg2: "#0F766E", fg: "#F0FDFA", accent: "#FB923C" }, // green/teal/orange
+  { bg1: "#F6E7D7", bg2: "#E8C7A6", fg: "#5A4636", accent: "#D97B4A" }, // creme / terracota
+  { bg1: "#EADFC8", bg2: "#CBB89D", fg: "#4E4438", accent: "#A67C52" }, // bege antigo / marrom claro
+  { bg1: "#DCE8D2", bg2: "#B7C9A8", fg: "#3E4A3F", accent: "#6E8B6B" }, // sálvia / oliva suave
+  { bg1: "#F4D6C6", bg2: "#E7A98A", fg: "#5B3A2E", accent: "#C46A4A" }, // pêssego / queimado
+  { bg1: "#D9E6E2", bg2: "#AFC8C2", fg: "#3B4B4B", accent: "#5F8F8B" }, // verde água vintage
+  { bg1: "#F1E3C6", bg2: "#E2C799", fg: "#5A4A32", accent: "#C9A24D" }, // mostarda clara / areia
+  { bg1: "#E6D3D1", bg2: "#C9A7A4", fg: "#4F3E3C", accent: "#9C6B66" }, // rosé antigo / argila
+  { bg1: "#E4DCCF", bg2: "#BFAF9B", fg: "#4A4338", accent: "#8C7B6A" }, // papel envelhecido
 ];
 
 // normaliza hex tipo "%23FFFFFF" ou "FFFFFF" ou "#FFF"
