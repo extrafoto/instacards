@@ -31,20 +31,28 @@ function hashStr(s = "") {
 
 // ===== Paletas sólidas elegantes (bg / fg / accent / accentAlt) =====
 const PALETTES = [
-  "#FF6B35",
-  "#F7B801",
-  "#00A6A6",
-  "#1B998B",
-  "#E71D36",
-  "#2E294E",
-  "#3A86FF",
-  "#8338EC",
-  "#FB5607",
-  "#06D6A0",
-  "#EF476F",
-  "#118AB2"
-];
+  // Tons quentes
+  { bg: "#FAF5EF", fg: "#1A1714", accent: "#C8553D", accentAlt: "#E8D5C4" },
+  { bg: "#F7F0E6", fg: "#2D2926", accent: "#B08968", accentAlt: "#DDD0C0" },
+  { bg: "#FDF2E9", fg: "#2C1810", accent: "#D4763C", accentAlt: "#F5DCC8" },
+  { bg: "#F5EEDC", fg: "#33312E", accent: "#A67C52", accentAlt: "#E0D4BE" },
 
+  // Tons frios
+  { bg: "#EFF2F5", fg: "#1C2127", accent: "#4A6FA5", accentAlt: "#C8D5E2" },
+  { bg: "#EDF1EE", fg: "#1B2721", accent: "#4A7C6F", accentAlt: "#C2D5CE" },
+  { bg: "#F0EDF5", fg: "#21192B", accent: "#7B5EA7", accentAlt: "#D4CCE0" },
+  { bg: "#EBF0F0", fg: "#1A2525", accent: "#3D7A7A", accentAlt: "#BDD4D4" },
+
+  // Neutros sofisticados
+  { bg: "#F4F3F1", fg: "#1D1D1B", accent: "#8C7A6B", accentAlt: "#DDD7D0" },
+  { bg: "#EDECE8", fg: "#1F1E1C", accent: "#6B6356", accentAlt: "#D1CEC7" },
+
+  // Escuros elegantes
+  { bg: "#1A1D23", fg: "#F0EDE8", accent: "#C8A97E", accentAlt: "#2D3039" },
+  { bg: "#191C20", fg: "#E8ECF0", accent: "#6B9AC4", accentAlt: "#252A32" },
+  { bg: "#1C1F1E", fg: "#E6EBE8", accent: "#7BAF8E", accentAlt: "#272D2A" },
+  { bg: "#201B1E", fg: "#F0E8EC", accent: "#C07C8C", accentAlt: "#302830" },
+];
 
 function normalizeHex(hex, fallback) {
   if (!hex) return fallback;
@@ -56,7 +64,7 @@ function normalizeHex(hex, fallback) {
   return v;
 }
 
-function choosePALETTES(frase, autor) {
+function choosePalette(frase, autor) {
   const h = hashStr(`${frase}||${autor}`);
   return PALETTES[h % PALETTES.length];
 }
@@ -264,7 +272,7 @@ app.get("/card.png", async (req, res) => {
     if (!frase) return res.status(400).json({ error: "frase é obrigatória" });
 
     const p = choosePalette(frase, autor);
-    const bg = PALETA[Math.floor(Math.random() * PALETA.length)];
+    const bg = normalizeHex(req.query.bg, p.bg);
     const autoFg = bestTextColor(bg);
     const fg = normalizeHex(req.query.fg, p.fg || autoFg);
     const accent = normalizeHex(req.query.accent, p.accent);
