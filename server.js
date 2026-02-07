@@ -32,26 +32,26 @@ function hashStr(s = "") {
 // ===== Paletas sólidas elegantes (bg / fg / accent / accentAlt) =====
 const PALETTES = [
   // Tons quentes
-  { bg: "#FAF5EF", fg: "#1A1714", accent: "#C8553D", accentAlt: "#E8D5C4" }, // marfim & terracota
-  { bg: "#F7F0E6", fg: "#2D2926", accent: "#B08968", accentAlt: "#DDD0C0" }, // linho & caramelo
-  { bg: "#FDF2E9", fg: "#2C1810", accent: "#D4763C", accentAlt: "#F5DCC8" }, // pêssego & cobre
-  { bg: "#F5EEDC", fg: "#33312E", accent: "#A67C52", accentAlt: "#E0D4BE" }, // pergaminho & bronze
+  { bg: "#FAF5EF", fg: "#1A1714", accent: "#C8553D", accentAlt: "#E8D5C4" },
+  { bg: "#F7F0E6", fg: "#2D2926", accent: "#B08968", accentAlt: "#DDD0C0" },
+  { bg: "#FDF2E9", fg: "#2C1810", accent: "#D4763C", accentAlt: "#F5DCC8" },
+  { bg: "#F5EEDC", fg: "#33312E", accent: "#A67C52", accentAlt: "#E0D4BE" },
 
   // Tons frios
-  { bg: "#EFF2F5", fg: "#1C2127", accent: "#4A6FA5", accentAlt: "#C8D5E2" }, // névoa & azul cobalto
-  { bg: "#EDF1EE", fg: "#1B2721", accent: "#4A7C6F", accentAlt: "#C2D5CE" }, // menta & esmeralda
-  { bg: "#F0EDF5", fg: "#21192B", accent: "#7B5EA7", accentAlt: "#D4CCE0" }, // lavanda & ametista
-  { bg: "#EBF0F0", fg: "#1A2525", accent: "#3D7A7A", accentAlt: "#BDD4D4" }, // gelo & petróleo
+  { bg: "#EFF2F5", fg: "#1C2127", accent: "#4A6FA5", accentAlt: "#C8D5E2" },
+  { bg: "#EDF1EE", fg: "#1B2721", accent: "#4A7C6F", accentAlt: "#C2D5CE" },
+  { bg: "#F0EDF5", fg: "#21192B", accent: "#7B5EA7", accentAlt: "#D4CCE0" },
+  { bg: "#EBF0F0", fg: "#1A2525", accent: "#3D7A7A", accentAlt: "#BDD4D4" },
 
   // Neutros sofisticados
-  { bg: "#F4F3F1", fg: "#1D1D1B", accent: "#8C7A6B", accentAlt: "#DDD7D0" }, // cinza quente & taupe
-  { bg: "#EDECE8", fg: "#1F1E1C", accent: "#6B6356", accentAlt: "#D1CEC7" }, // pedra & grafite quente
+  { bg: "#F4F3F1", fg: "#1D1D1B", accent: "#8C7A6B", accentAlt: "#DDD7D0" },
+  { bg: "#EDECE8", fg: "#1F1E1C", accent: "#6B6356", accentAlt: "#D1CEC7" },
 
   // Escuros elegantes
-  { bg: "#1A1D23", fg: "#F0EDE8", accent: "#C8A97E", accentAlt: "#2D3039" }, // noite & ouro
-  { bg: "#191C20", fg: "#E8ECF0", accent: "#6B9AC4", accentAlt: "#252A32" }, // carvão & azul gelo
-  { bg: "#1C1F1E", fg: "#E6EBE8", accent: "#7BAF8E", accentAlt: "#272D2A" }, // ébano & jade
-  { bg: "#201B1E", fg: "#F0E8EC", accent: "#C07C8C", accentAlt: "#302830" }, // obsidiana & rosé
+  { bg: "#1A1D23", fg: "#F0EDE8", accent: "#C8A97E", accentAlt: "#2D3039" },
+  { bg: "#191C20", fg: "#E8ECF0", accent: "#6B9AC4", accentAlt: "#252A32" },
+  { bg: "#1C1F1E", fg: "#E6EBE8", accent: "#7BAF8E", accentAlt: "#272D2A" },
+  { bg: "#201B1E", fg: "#F0E8EC", accent: "#C07C8C", accentAlt: "#302830" },
 ];
 
 function normalizeHex(hex, fallback) {
@@ -159,6 +159,7 @@ function svgCard({
   const safeBottom = height - safeY;
   const safeCenterY = (safeTop + safeBottom) / 2;
   const startY = Math.round(safeCenterY - blockHeight / 2);
+  const blockEndY = startY + blockHeight;
 
   const tspans = lines
     .map(
@@ -170,6 +171,11 @@ function svgCard({
   const authorSize = Math.max(24, Math.round(fontSize * 0.48));
   const lineW = 80;
   const dotR = 5;
+
+  // Autor posicionado próximo ao fim da frase
+  const authorGap = Math.round(lineHeight * 0.45);
+  const separatorY = blockEndY + Math.round(authorGap * 0.5);
+  const authorY = blockEndY + authorGap;
 
   return `
   <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
@@ -212,13 +218,13 @@ function svgCard({
     <!-- Separador antes do autor -->
     ${autor ? `
     <line x1="${width / 2 - 40}" x2="${width / 2 + 40}"
-          y1="${height - safeY - 30}" y2="${height - safeY - 30}"
+          y1="${separatorY}" y2="${separatorY}"
           stroke="${accent}" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
     ` : ""}
 
     <!-- AUTOR -->
     ${autor ? `
-    <text x="${width / 2}" y="${height - safeY + 15}"
+    <text x="${width / 2}" y="${authorY}"
       text-anchor="middle"
       fill="${fg}"
       opacity="0.65"
