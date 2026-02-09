@@ -111,20 +111,20 @@ function wrapWordsToLines(text, maxChars) {
 function layoutText(frase, { width, height, safeX, safeY }) {
   const safeWidth = width - safeX * 2;
   const safeHeight = height - safeY * 2;
-  let fontSize = 58;
-  const minFont = 26;
+  let fontSize = 52;
+  const minFont = 22;
 
   while (fontSize >= minFont) {
     const lineHeight = Math.round(fontSize * 1.3);
     const approxCharWidth = fontSize * 0.54;
     const maxChars = Math.max(18, Math.floor(safeWidth / approxCharWidth));
     let lines = wrapWordsToLines(frase, maxChars);
-    if (lines.length > 12) lines = lines.slice(0, 12);
+    if (lines.length > 16) lines = lines.slice(0, 16);
     const blockHeight = lines.length * lineHeight;
     if (blockHeight <= safeHeight * 0.75) {
       return { lines, fontSize, lineHeight };
     }
-    fontSize -= 2;
+    fontSize -= 1;
   }
 
   const lineHeight = Math.round(minFont * 1.3);
