@@ -164,9 +164,7 @@ function svgCard({
   const tspans = lines
     .map(
       (ln, i) =>
-        `<tspan x="${width / 2}" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(
-          ln
-        )}</tspan>`
+        `<tspan x="${width / 2}" dy="${i === 0 ? 0 : lineHeight}">${escapeXml(ln)}</tspan>`
     )
     .join("");
 
@@ -197,11 +195,7 @@ function svgCard({
     <!-- FUNDO SÓLIDO -->
     <rect width="100%" height="100%" fill="${bg}"/>
 
-    ${
-      texture
-        ? `<rect width="100%" height="100%" filter="url(#paperNoise)" opacity="0.45"/>`
-        : ""
-    }
+    ${texture ? `<rect width="100%" height="100%" filter="url(#paperNoise)" opacity="0.45"/>` : ""}
 
     <!-- Detalhe superior: ponto + linha fina -->
     <circle cx="${width / 2}" cy="${safeY - 140}" r="${dotR}" fill="${accent}" opacity="0.7"/>
@@ -222,20 +216,14 @@ function svgCard({
     </text>
 
     <!-- Separador antes do autor -->
-    ${
-      autor
-        ? `
+    ${autor ? `
     <line x1="${width / 2 - 40}" x2="${width / 2 + 40}"
           y1="${separatorY}" y2="${separatorY}"
           stroke="${accent}" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
-    `
-        : ""
-    }
+    ` : ""}
 
     <!-- AUTOR -->
-    ${
-      autor
-        ? `
+    ${autor ? `
     <text x="${width / 2}" y="${authorY}"
       text-anchor="middle"
       fill="${fg}"
@@ -244,9 +232,7 @@ function svgCard({
       font-size="${authorSize}"
       font-weight="400"
       letter-spacing="2"
-      text-transform="uppercase">— ${escapeXml(autor)}</text>`
-        : ""
-    }
+      text-transform="uppercase">— ${escapeXml(autor)}</text>` : ""}
 
     <!-- Detalhe inferior: linha fina -->
     <line x1="${width / 2 - lineW}" x2="${width / 2 + lineW}"
